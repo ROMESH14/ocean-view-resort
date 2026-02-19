@@ -14,7 +14,6 @@ import java.io.IOException;
 public class ReservationEditServlet extends HttpServlet {
 
     private ReservationDAO reservationDAO;
-
     @Override
     public void init() {
         reservationDAO = new ReservationDAO();
@@ -23,11 +22,8 @@ public class ReservationEditServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-
         int id = Integer.parseInt(req.getParameter("id"));
-
         Reservation r = reservationDAO.getReservationById(id);
-
         req.setAttribute("reservation", r);
 
         req.getRequestDispatcher("/edit-reservation.jsp").forward(req, resp);

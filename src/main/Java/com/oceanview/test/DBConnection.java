@@ -11,7 +11,6 @@ public class DBConnection {
     private static final String PASSWORD = "";
 
     public static Connection getConnection() {
-
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
             return DriverManager.getConnection(URL, USER, PASSWORD);

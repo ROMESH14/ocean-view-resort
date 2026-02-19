@@ -22,16 +22,13 @@ public class LoginServlet extends HttpServlet {
         String username = req.getParameter("username");
         String password = req.getParameter("password");
 
+        //error hadling
         if (USERNAME.equals(username) && PASSWORD.equals(password)) {
-
             HttpSession session = req.getSession();
             session.setAttribute("user", username);
-
-            // go to main page after login
             resp.sendRedirect(req.getContextPath() + "/dashboard");
 
         } else {
-            // back to login with error
             resp.sendRedirect(req.getContextPath() + "/login.jsp?error=1");
         }
     }

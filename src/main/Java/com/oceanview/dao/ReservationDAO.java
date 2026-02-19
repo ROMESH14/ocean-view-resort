@@ -1,7 +1,7 @@
 package com.oceanview.dao;
 
 import com.oceanview.model.Reservation;
-import com.oceanview.test.DBConnection; // change to com.oceanview.util.DBConnection if needed
+import com.oceanview.util.DBConnection;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -12,7 +12,7 @@ import java.util.List;
 public class ReservationDAO {
 
     // =========================================================
-    // ✅ SAFE INSERT (Prevents double booking)
+    // SAFE INSERT (Prevents double booking)
     // =========================================================
     public boolean addReservationIfAvailable(Reservation r) {
 
@@ -25,15 +25,16 @@ public class ReservationDAO {
                         "  AND check_out > ? " +  // new_check_in
                         "LIMIT 1";
 
-        String insertSql = "INSERT INTO reservations " +
-                "(reservation_no, guest_name, address, contact_no, room_type, room_id, check_in, check_out, guest_count, total_amount) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String insertSql =
+                "INSERT INTO reservations " +
+                        "(reservation_no, guest_name, address, contact_no, room_type, room_id, check_in, check_out, guest_count, total_amount) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection con = DBConnection.getConnection()) {
             con.setAutoCommit(false);
 
             try {
-                // 1) Lock chosen room row (race-condition protection)
+                // 1) Lock room row
                 try (PreparedStatement lockPs = con.prepareStatement(lockRoomSql)) {
                     lockPs.setInt(1, r.getRoomId());
                     lockPs.executeQuery();
@@ -43,8 +44,8 @@ public class ReservationDAO {
                 boolean conflict;
                 try (PreparedStatement ovPs = con.prepareStatement(overlapSql)) {
                     ovPs.setInt(1, r.getRoomId());
-                    ovPs.setDate(2, Date.valueOf(r.getCheckOut())); // new_check_out
-                    ovPs.setDate(3, Date.valueOf(r.getCheckIn()));  // new_check_in
+                    ovPs.setDate(2, Date.valueOf(r.getCheckOut()));
+                    ovPs.setDate(3, Date.valueOf(r.getCheckIn()));
                     try (ResultSet rs = ovPs.executeQuery()) {
                         conflict = rs.next();
                     }
@@ -55,7 +56,7 @@ public class ReservationDAO {
                     return false;
                 }
 
-                // 3) Insert reservation
+                // 3) Insert
                 try (PreparedStatement ps = con.prepareStatement(insertSql)) {
                     ps.setString(1, r.getReservationNo());
                     ps.setString(2, r.getGuestName());
@@ -88,7 +89,7 @@ public class ReservationDAO {
     }
 
     // =========================================================
-    // ✅ SAFE UPDATE (Prevents double booking when editing)
+    // SAFE UPDATE (Prevents double booking on edit)
     // =========================================================
     public boolean updateReservationIfAvailable(Reservation r) {
 
@@ -110,13 +111,13 @@ public class ReservationDAO {
             con.setAutoCommit(false);
 
             try {
-                // 1) lock room row
+                // 1) Lock room row
                 try (PreparedStatement lockPs = con.prepareStatement(lockRoomSql)) {
                     lockPs.setInt(1, r.getRoomId());
                     lockPs.executeQuery();
                 }
 
-                // 2) check overlap excluding itself
+                // 2) Overlap check
                 boolean conflict;
                 try (PreparedStatement ovPs = con.prepareStatement(overlapSql)) {
                     ovPs.setInt(1, r.getRoomId());
@@ -133,7 +134,7 @@ public class ReservationDAO {
                     return false;
                 }
 
-                // 3) update
+                // 3) Update
                 try (PreparedStatement ps = con.prepareStatement(updateSql)) {
                     ps.setString(1, r.getGuestName());
                     ps.setString(2, r.getAddress());
@@ -166,10 +167,9 @@ public class ReservationDAO {
     }
 
     // =========================================================
-    // NORMAL INSERT (NOT SAFE) - includes room_id
+    // NORMAL INSERT (Not safe) - keep only if needed
     // =========================================================
     public boolean addReservation(Reservation r) {
-
         String sql = "INSERT INTO reservations " +
                 "(reservation_no, guest_name, address, contact_no, room_type, room_id, check_in, check_out, guest_count, total_amount) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -196,11 +196,32 @@ public class ReservationDAO {
         }
     }
 
-    // =========================
-    // GET ALL RESERVATIONS (WITH ROOM NUMBER)
-    // =========================
-    public List<Reservation> getAllReservations() {
+    // =========================================================
+    // GET RATE FROM DATABASE (so price can change in DB)
+    // =========================================================
+    public BigDecimal getRatePerNight(String roomType) {
+        String sql = "SELECT rate_per_night FROM room_rates WHERE room_type = ?";
 
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, normalizeRoomType(roomType));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getBigDecimal("rate_per_night");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return BigDecimal.ZERO;
+    }
+
+    // =========================================================
+    // GET ALL RESERVATIONS (with room number)
+    // =========================================================
+    public List<Reservation> getAllReservations() {
         List<Reservation> list = new ArrayList<>();
 
         String sql =
@@ -216,24 +237,7 @@ public class ReservationDAO {
              ResultSet rs = st.executeQuery(sql)) {
 
             while (rs.next()) {
-                Reservation r = new Reservation();
-
-                r.setId(rs.getInt("id"));
-                r.setReservationNo(rs.getString("reservation_no"));
-                r.setGuestName(rs.getString("guest_name"));
-                r.setAddress(rs.getString("address"));
-                r.setContactNo(rs.getString("contact_no"));
-                r.setRoomType(rs.getString("room_type"));
-                r.setRoomId(rs.getInt("room_id"));
-
-                // ✅ NEW
-                r.setRoomNumber(rs.getString("room_number"));
-
-                r.setCheckIn(rs.getDate("check_in").toLocalDate());
-                r.setCheckOut(rs.getDate("check_out").toLocalDate());
-                r.setGuestCount(rs.getInt("guest_count"));
-                r.setTotalAmount(rs.getBigDecimal("total_amount"));
-
+                Reservation r = mapReservationWithRoomNumber(rs);
                 list.add(r);
             }
 
@@ -244,28 +248,9 @@ public class ReservationDAO {
         return list;
     }
 
-    // =========================
-    // DELETE RESERVATION
-    // =========================
-    public boolean deleteReservation(int id) {
-
-        String sql = "DELETE FROM reservations WHERE id = ?";
-
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setInt(1, id);
-            return ps.executeUpdate() > 0;
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    // =========================
-    // GET RESERVATION BY ID (WITH ROOM NUMBER)
-    // =========================
+    // =========================================================
+    // GET RESERVATION BY ID (with room number)
+    // =========================================================
     public Reservation getReservationById(int id) {
 
         String sql =
@@ -282,27 +267,7 @@ public class ReservationDAO {
             ps.setInt(1, id);
 
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    Reservation r = new Reservation();
-
-                    r.setId(rs.getInt("id"));
-                    r.setReservationNo(rs.getString("reservation_no"));
-                    r.setGuestName(rs.getString("guest_name"));
-                    r.setAddress(rs.getString("address"));
-                    r.setContactNo(rs.getString("contact_no"));
-                    r.setRoomType(rs.getString("room_type"));
-                    r.setRoomId(rs.getInt("room_id"));
-
-                    // ✅ NEW
-                    r.setRoomNumber(rs.getString("room_number"));
-
-                    r.setCheckIn(rs.getDate("check_in").toLocalDate());
-                    r.setCheckOut(rs.getDate("check_out").toLocalDate());
-                    r.setGuestCount(rs.getInt("guest_count"));
-                    r.setTotalAmount(rs.getBigDecimal("total_amount"));
-
-                    return r;
-                }
+                if (rs.next()) return mapReservationWithRoomNumber(rs);
             }
 
         } catch (Exception e) {
@@ -312,9 +277,9 @@ public class ReservationDAO {
         return null;
     }
 
-    // =========================
-    // UPDATE RESERVATION (NOT SAFE)
-    // =========================
+    // =========================================================
+    // UPDATE RESERVATION (Not safe)
+    // =========================================================
     public boolean updateReservation(Reservation r) {
 
         String sql = "UPDATE reservations SET " +
@@ -343,9 +308,24 @@ public class ReservationDAO {
         }
     }
 
-    // =========================
-    // SEARCH BY GUEST NAME (WITH ROOM NUMBER)
-    // =========================
+    // =========================================================
+    // DELETE
+    // =========================================================
+    public boolean deleteReservation(int id) {
+        String sql = "DELETE FROM reservations WHERE id = ?";
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // =========================================================
+    // SEARCH BY GUEST NAME (with room number)
+    // =========================================================
     public List<Reservation> searchByGuestName(String keyword) {
 
         List<Reservation> list = new ArrayList<>();
@@ -365,27 +345,7 @@ public class ReservationDAO {
             ps.setString(1, "%" + keyword + "%");
 
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    Reservation r = new Reservation();
-
-                    r.setId(rs.getInt("id"));
-                    r.setReservationNo(rs.getString("reservation_no"));
-                    r.setGuestName(rs.getString("guest_name"));
-                    r.setAddress(rs.getString("address"));
-                    r.setContactNo(rs.getString("contact_no"));
-                    r.setRoomType(rs.getString("room_type"));
-                    r.setRoomId(rs.getInt("room_id"));
-
-                    // ✅ NEW
-                    r.setRoomNumber(rs.getString("room_number"));
-
-                    r.setCheckIn(rs.getDate("check_in").toLocalDate());
-                    r.setCheckOut(rs.getDate("check_out").toLocalDate());
-                    r.setGuestCount(rs.getInt("guest_count"));
-                    r.setTotalAmount(rs.getBigDecimal("total_amount"));
-
-                    list.add(r);
-                }
+                while (rs.next()) list.add(mapReservationWithRoomNumber(rs));
             }
 
         } catch (Exception e) {
@@ -395,9 +355,9 @@ public class ReservationDAO {
         return list;
     }
 
-    // =========================
-    // DASHBOARD METHODS
-    // =========================
+    // =========================================================
+    // DASHBOARD
+    // =========================================================
     public int getTotalReservations() {
         String sql = "SELECT COUNT(*) FROM reservations";
         try (Connection con = DBConnection.getConnection();
@@ -466,10 +426,33 @@ public class ReservationDAO {
     // =========================================================
     // Helpers
     // =========================================================
+    private Reservation mapReservationWithRoomNumber(ResultSet rs) throws SQLException {
+        Reservation r = new Reservation();
+
+        r.setId(rs.getInt("id"));
+        r.setReservationNo(rs.getString("reservation_no"));
+        r.setGuestName(rs.getString("guest_name"));
+        r.setAddress(rs.getString("address"));
+        r.setContactNo(rs.getString("contact_no"));
+        r.setRoomType(rs.getString("room_type"));
+        r.setRoomId(rs.getInt("room_id"));
+        r.setRoomNumber(rs.getString("room_number"));
+
+        Date ci = rs.getDate("check_in");
+        Date co = rs.getDate("check_out");
+        if (ci != null) r.setCheckIn(ci.toLocalDate());
+        if (co != null) r.setCheckOut(co.toLocalDate());
+
+        r.setGuestCount(rs.getInt("guest_count"));
+        r.setTotalAmount(rs.getBigDecimal("total_amount"));
+        return r;
+    }
+
     private BigDecimal safeAmount(BigDecimal amount) {
         return amount != null ? amount : BigDecimal.ZERO;
     }
 
+    // Normalize to DB values: STANDARD / DELUXE / SUITE
     private String normalizeRoomType(String roomType) {
         if (roomType == null) return "STANDARD";
         String rt = roomType.trim();

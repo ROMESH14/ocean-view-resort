@@ -128,7 +128,7 @@
     <div class="section">
         <h3>6) Room Rules & Charges</h3>
         <ul>
-            <li><b>Standard</b>: Rs. 10,000 per night (2 guests included). Extra guest: Rs. 2,000 per night. Max 3 guests per room.</li>
+            <li><b>Standard</b>: Rs. 13,000 per night (2 guests included). Extra guest: Rs. 2,000 per night. Max 3 guests per room.</li>
             <li><b>Deluxe</b>: (2 guests included). Extra guest: Rs. 5,000 per night. Max 3 guests per room.</li>
             <li><b>Suite</b>: Only 2 guests allowed (no extra guests).</li>
             <li>If guests exceed room capacity, the system calculates <b>rooms needed</b> automatically.</li>

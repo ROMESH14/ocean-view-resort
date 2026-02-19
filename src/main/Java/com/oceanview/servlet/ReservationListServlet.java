@@ -1,5 +1,4 @@
 package com.oceanview.servlet;
-
 import com.oceanview.dao.ReservationDAO;
 import com.oceanview.model.Reservation;
 
@@ -13,7 +12,6 @@ import java.util.List;
 
 @WebServlet("/reservations")
 public class ReservationListServlet extends HttpServlet {
-
     private ReservationDAO reservationDAO;
 
     @Override
@@ -24,9 +22,7 @@ public class ReservationListServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-
         String q = req.getParameter("q");
-
         List<Reservation> list;
 
         if (q != null && !q.trim().isEmpty()) {
@@ -35,9 +31,8 @@ public class ReservationListServlet extends HttpServlet {
         } else {
             list = reservationDAO.getAllReservations();
         }
-
         req.setAttribute("reservations", list);
+
         req.getRequestDispatcher("/reservations.jsp").forward(req, resp);
     }
-
 }

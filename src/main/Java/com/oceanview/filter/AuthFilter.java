@@ -16,35 +16,24 @@ public class AuthFilter implements Filter {
 
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse resp = (HttpServletResponse) response;
-
         String path = req.getRequestURI();
         String contextPath = req.getContextPath();
-
-        // ✅ Root access: /ocean-view-resort/  -> go to login first
         boolean isRoot = path.equals(contextPath + "/") || path.equals(contextPath);
-
-        // Allow login pages/servlets + static files
         boolean isLoginPage = path.equals(contextPath + "/login.jsp");
         boolean isLoginServlet = path.equals(contextPath + "/login");
-
         boolean isPublicResource =
                 path.startsWith(contextPath + "/css/") ||
                         path.startsWith(contextPath + "/js/") ||
                         path.startsWith(contextPath + "/images/");
 
-        // ✅ If user opens root "/", send to login first
         if (isRoot) {
             resp.sendRedirect(contextPath + "/login.jsp");
             return;
         }
-
-        // ✅ Allow login + static resources without session
         if (isLoginPage || isLoginServlet || isPublicResource) {
             chain.doFilter(request, response);
             return;
         }
-
-        // Check session
         HttpSession session = req.getSession(false);
         boolean loggedIn = (session != null && session.getAttribute("user") != null);
 
@@ -52,8 +41,6 @@ public class AuthFilter implements Filter {
             resp.sendRedirect(contextPath + "/login.jsp");
             return;
         }
-
-        // Continue
         chain.doFilter(request, response);
     }
 }

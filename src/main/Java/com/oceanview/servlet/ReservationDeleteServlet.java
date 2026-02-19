@@ -24,10 +24,8 @@ public class ReservationDeleteServlet extends HttpServlet {
             throws ServletException, IOException {
 
         int id = Integer.parseInt(req.getParameter("id"));
-
         reservationDAO.deleteReservation(id);
 
-        // Redirect back to list page
         resp.sendRedirect("reservations?success=deleted");
     }
 }

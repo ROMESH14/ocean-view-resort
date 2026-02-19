@@ -33,54 +33,89 @@ public class ReservationUpdateServlet extends HttpServlet {
         String roomType = req.getParameter("roomType");
 
         int guestCount = Integer.parseInt(req.getParameter("guestCount"));
-
         LocalDate checkIn = LocalDate.parse(req.getParameter("checkIn"));
         LocalDate checkOut = LocalDate.parse(req.getParameter("checkOut"));
 
-        // ---------- VALIDATION ----------
+        // 🔽 Load existing reservation (needed to keep room_id, reservation_no, total_amount etc)
+        Reservation existing = reservationDAO.getReservationById(id);
+        if (existing == null) {
+            resp.sendRedirect(req.getContextPath() + "/reservations");
+            return;
+        }
+
+        // ---------------- VALIDATION ----------------
         if (guestName == null || guestName.trim().isEmpty()) {
             req.setAttribute("error", "Guest Name is required.");
-            req.setAttribute("reservation", reservationDAO.getReservationById(id));
+            req.setAttribute("reservation", existing);
             req.getRequestDispatcher("/edit-reservation.jsp").forward(req, resp);
             return;
         }
 
         if (contactNo == null || !contactNo.matches("\\d+")) {
             req.setAttribute("error", "Contact No must contain only numbers.");
-            req.setAttribute("reservation", reservationDAO.getReservationById(id));
+            req.setAttribute("reservation", existing);
             req.getRequestDispatcher("/edit-reservation.jsp").forward(req, resp);
             return;
         }
 
         if (guestCount < 1) {
             req.setAttribute("error", "Guest count must be at least 1.");
-            req.setAttribute("reservation", reservationDAO.getReservationById(id));
+            req.setAttribute("reservation", existing);
             req.getRequestDispatcher("/edit-reservation.jsp").forward(req, resp);
             return;
         }
 
         if (checkOut.isBefore(checkIn) || checkOut.isEqual(checkIn)) {
             req.setAttribute("error", "Check-out date must be after Check-in date.");
-            req.setAttribute("reservation", reservationDAO.getReservationById(id));
+            req.setAttribute("reservation", existing);
             req.getRequestDispatcher("/edit-reservation.jsp").forward(req, resp);
             return;
         }
-        // ---------- END VALIDATION ----------
+        // ------------------------------------------------
 
+        // ✅ roomId: get from form if exists, else keep old one
+        int roomId = existing.getRoomId();
+        String roomIdParam = req.getParameter("roomId");
+        if (roomIdParam != null && !roomIdParam.trim().isEmpty()) {
+            try {
+                roomId = Integer.parseInt(roomIdParam);
+            } catch (NumberFormatException ignored) {
+                // keep existing roomId
+            }
+        }
+
+        // ✅ Build updated reservation (keep important fields)
         Reservation r = new Reservation();
         r.setId(id);
+
+        // keep reservation_no
+        r.setReservationNo(existing.getReservationNo());
+
         r.setGuestName(guestName);
         r.setAddress(address);
         r.setContactNo(contactNo);
+
+        // keep/normalize room type (DAO will normalize)
         r.setRoomType(roomType);
-        r.setGuestCount(guestCount);   // ✅ IMPORTANT (you missed this)
+
+        r.setRoomId(roomId);
+        r.setGuestCount(guestCount);
         r.setCheckIn(checkIn);
         r.setCheckOut(checkOut);
 
-        reservationDAO.updateReservation(r);
+        // keep totalAmount (unless your edit page recalculates it)
+        r.setTotalAmount(existing.getTotalAmount());
 
-        // Back to list with success message
+        // ✅ SAFE UPDATE (prevents double booking)
+        boolean ok = reservationDAO.updateReservationIfAvailable(r);
+
+        if (!ok) {
+            req.setAttribute("error", "Room already booked for selected dates. Please choose another room or dates.");
+            req.setAttribute("reservation", existing);
+            req.getRequestDispatcher("/edit-reservation.jsp").forward(req, resp);
+            return;
+        }
+
         resp.sendRedirect(req.getContextPath() + "/reservations?success=updated");
     }
-
 }

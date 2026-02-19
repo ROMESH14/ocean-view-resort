@@ -39,6 +39,7 @@ public class ReservationServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
+        // Auto-generate Reservation No
         String reservationNo = "RES-" +
                 LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) +
                 "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
@@ -46,9 +47,23 @@ public class ReservationServlet extends HttpServlet {
         String guestName = req.getParameter("guestName");
         String address = req.getParameter("address");
         String contactNo = req.getParameter("contactNo");
+
+        // UI values: Standard / Deluxe / Suite
         String roomTypeUi = req.getParameter("roomType");
 
-        // ✅ room type required
+        // --------- VALIDATION (basic) ----------
+        if (guestName == null || guestName.trim().isEmpty()) {
+            req.setAttribute("error", "Guest Name is required.");
+            req.getRequestDispatcher("/index.jsp").forward(req, resp);
+            return;
+        }
+
+        if (contactNo == null || !contactNo.matches("\\d+")) {
+            req.setAttribute("error", "Contact No must contain only numbers.");
+            req.getRequestDispatcher("/index.jsp").forward(req, resp);
+            return;
+        }
+
         if (roomTypeUi == null || roomTypeUi.trim().isEmpty()) {
             req.setAttribute("error", "Room Type is required.");
             req.getRequestDispatcher("/index.jsp").forward(req, resp);
@@ -64,24 +79,19 @@ public class ReservationServlet extends HttpServlet {
             return;
         }
 
-        LocalDate checkIn = LocalDate.parse(req.getParameter("checkIn"));
-        LocalDate checkOut = LocalDate.parse(req.getParameter("checkOut"));
-
-        // VALIDATION
-        if (guestName == null || guestName.trim().isEmpty()) {
-            req.setAttribute("error", "Guest Name is required.");
-            req.getRequestDispatcher("/index.jsp").forward(req, resp);
-            return;
-        }
-
-        if (contactNo == null || !contactNo.matches("\\d+")) {
-            req.setAttribute("error", "Contact No must contain only numbers.");
-            req.getRequestDispatcher("/index.jsp").forward(req, resp);
-            return;
-        }
-
         if (guestCount < 1) {
             req.setAttribute("error", "Guest count must be at least 1.");
+            req.getRequestDispatcher("/index.jsp").forward(req, resp);
+            return;
+        }
+
+        LocalDate checkIn;
+        LocalDate checkOut;
+        try {
+            checkIn = LocalDate.parse(req.getParameter("checkIn"));
+            checkOut = LocalDate.parse(req.getParameter("checkOut"));
+        } catch (Exception e) {
+            req.setAttribute("error", "Invalid dates selected.");
             req.getRequestDispatcher("/index.jsp").forward(req, resp);
             return;
         }
@@ -99,38 +109,49 @@ public class ReservationServlet extends HttpServlet {
             return;
         }
 
-        int maxGuestsPerRoom;
-        int includedGuestsPerRoom;
-        BigDecimal baseRatePerRoom;
-        BigDecimal extraGuestFeePerNight;
-
+        // ---------- Map UI room type -> DB room type ----------
+        // DB values: STANDARD / DELUXE / SUITE
+        String roomTypeDb;
         switch (roomTypeUi) {
             case "Deluxe":
-                baseRatePerRoom = new BigDecimal("15000");
+                roomTypeDb = "DELUXE";
+                break;
+            case "Suite":
+                roomTypeDb = "SUITE";
+                break;
+            default:
+                roomTypeDb = "STANDARD";
+                break;
+        }
+
+        // ---------- Guest rules + extra fee rules (NOT base price) ----------
+        int maxGuestsPerRoom;
+        int includedGuestsPerRoom;
+        BigDecimal extraGuestFeePerNight;
+
+        switch (roomTypeDb) {
+            case "DELUXE":
                 includedGuestsPerRoom = 2;
                 maxGuestsPerRoom = 3;
                 extraGuestFeePerNight = new BigDecimal("5000");
                 break;
 
-            case "Suite":
-                baseRatePerRoom = new BigDecimal("25000");
+            case "SUITE":
                 includedGuestsPerRoom = 2;
                 maxGuestsPerRoom = 2;
                 extraGuestFeePerNight = BigDecimal.ZERO;
                 break;
 
-            default:
-                baseRatePerRoom = new BigDecimal("10000");
+            default: // STANDARD
                 includedGuestsPerRoom = 2;
                 maxGuestsPerRoom = 3;
                 extraGuestFeePerNight = new BigDecimal("2000");
                 break;
         }
 
-        // one reservation = one room (current DB design)
+        // Your system supports 1 room per reservation right now
         int roomsNeeded = 1;
 
-        // prevent too many guests for one room
         if (guestCount > maxGuestsPerRoom) {
             req.setAttribute("error", "Too many guests for one " + roomTypeUi + " room. Book rooms separately.");
             req.getRequestDispatcher("/index.jsp").forward(req, resp);
@@ -139,19 +160,26 @@ public class ReservationServlet extends HttpServlet {
 
         int extraGuests = Math.max(0, guestCount - includedGuestsPerRoom);
 
-        BigDecimal roomCost = baseRatePerRoom.multiply(BigDecimal.valueOf(nights));
-        BigDecimal extraCost = extraGuestFeePerNight.multiply(BigDecimal.valueOf(extraGuests)).multiply(BigDecimal.valueOf(nights));
-        BigDecimal total = roomCost.add(extraCost);
+        // ✅ IMPORTANT FIX: base rate comes from DB (room_rates table)
+        BigDecimal baseRatePerRoom = reservationDAO.getRatePerNight(roomTypeDb);
 
-        // map UI type -> DB type
-        String roomTypeDb;
-        switch (roomTypeUi) {
-            case "Deluxe": roomTypeDb = "DELUXE"; break;
-            case "Suite":  roomTypeDb = "SUITE";  break;
-            default:       roomTypeDb = "STANDARD"; break;
+        if (baseRatePerRoom == null || baseRatePerRoom.compareTo(BigDecimal.ZERO) <= 0) {
+            req.setAttribute("error", "Room rate is not configured in database for " + roomTypeDb + ".");
+            req.getRequestDispatcher("/index.jsp").forward(req, resp);
+            return;
         }
 
-        // ✅ find available room id
+        BigDecimal roomCost = baseRatePerRoom
+                .multiply(BigDecimal.valueOf(roomsNeeded))
+                .multiply(BigDecimal.valueOf(nights));
+
+        BigDecimal extraCost = extraGuestFeePerNight
+                .multiply(BigDecimal.valueOf(extraGuests))
+                .multiply(BigDecimal.valueOf(nights));
+
+        BigDecimal total = roomCost.add(extraCost);
+
+        // ---------- Find an available room_id ----------
         Integer roomId = roomDAO.getOneAvailableRoomId(roomTypeDb, checkIn, checkOut);
         if (roomId == null) {
             req.setAttribute("error", "No rooms available for selected dates. Please choose different dates.");
@@ -159,6 +187,7 @@ public class ReservationServlet extends HttpServlet {
             return;
         }
 
+        // ---------- Build reservation ----------
         Reservation r = new Reservation();
         r.setReservationNo(reservationNo);
         r.setGuestName(guestName);
@@ -169,17 +198,17 @@ public class ReservationServlet extends HttpServlet {
         r.setCheckIn(checkIn);
         r.setCheckOut(checkOut);
         r.setGuestCount(guestCount);
-        r.setTotalAmount(total);
+        r.setTotalAmount(total); // ✅ now DB total matches bill total
 
-        // ✅ SAFE INSERT
+        // ✅ SAFE INSERT (prevents double booking)
         boolean success = reservationDAO.addReservationIfAvailable(r);
-
         if (!success) {
             req.setAttribute("error", "Room already booked for selected dates. Please try again.");
             req.getRequestDispatcher("/index.jsp").forward(req, resp);
             return;
         }
 
+        // ---------- Forward result ----------
         req.setAttribute("success", true);
         req.setAttribute("reservation", r);
 
