@@ -1,21 +1,9 @@
 ___Ocean View Resort Reservation System___
+
+
 A web-based hotel reservation management system developed using Java JSP, Servlets, and MySQL.This system allows staff to manage room bookings, prevent double booking, calculate bills, and maintain guest records efficiently.
 
-ocean-view-resort/
- ├── src/main/java/com/oceanview/
- │   ├── servlet/
- │   ├── dao/
- │   ├── model/
- │   ├── filter/
- │   └── util/
- ├── src/main/webapp/
- │   ├── assets/
- │   ├── WEB-INF/
- │   ├── *.jsp
- ├── database/
- │   └── SQL scripts
- └── README.md
- 
+
 __Features__
 1.Authentication
 2.Reservation Management
@@ -23,6 +11,9 @@ __Features__
 4.Billing System
 5.Dashboard
 6.Help Section
+
+
+
 
 __Key Technologies Used__
 **Backend**
@@ -45,4 +36,5 @@ __Key Technologies Used__
 **Version Control**
 -Git
 -GitHub (public repository)
+
 
