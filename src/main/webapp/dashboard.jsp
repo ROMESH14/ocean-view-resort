@@ -6,8 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
-        /* Dashboard-only styles (header.jsp already handles layout) */
-
         .container {
             max-width: 1100px;
             margin: 10px auto;
@@ -53,8 +51,6 @@
             font-weight: bold;
             margin: 10px 0 0;
         }
-
-        /* Quick Actions */
         .actions {
             margin-top: 30px;
             display: grid;
@@ -79,7 +75,6 @@
             background: #005f8a;
         }
 
-        /* Responsive */
         @media (max-width: 900px) {
             .card-grid,
             .actions {
@@ -125,8 +120,6 @@
         <h1>Welcome to Dashboard</h1>
         <p>Manage reservations, billing and guest services easily.</p>
     </div>
-
-    <!-- KPI Cards -->
     <div class="card-grid">
         <div class="card">
             <h3>Total Reservations</h3>
@@ -148,8 +141,6 @@
             <p><%= formatter.format(monthlyRevenue) %></p>
         </div>
     </div>
-
-    <!-- Quick Actions -->
     <div class="actions">
         <a class="action-btn" href="index.jsp">Make Reservation</a>
         <a class="action-btn" href="reservations">All Reservations</a>

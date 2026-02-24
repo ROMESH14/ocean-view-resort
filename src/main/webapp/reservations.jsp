@@ -13,33 +13,195 @@
     <title>All Reservations - Ocean View Resort</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <style>
-        /* --- styles unchanged --- */
-        .pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
-        .page-title{margin:0 0 6px 0;font-size:22px;}
-        .page-subtitle{margin:0;color:#6b7280;font-size:13px;}
-        .btn{border:none;padding:10px 14px;border-radius:10px;font-weight:bold;cursor:pointer;text-decoration:none;display:inline-block;font-size:13px;}
-        .btn-primary{background:#0077b6;color:#fff;} .btn-primary:hover{background:#005f8a;}
-        .btn-secondary{background:#fff;color:#111827;border:1px solid #d1d5db;} .btn-secondary:hover{background:#f9fafb;}
-        .btn-link{background:transparent;border:none;padding:0;color:#0077b6;font-weight:bold;cursor:pointer;text-decoration:none;font-size:13px;}
-        .btn-link:hover{text-decoration:underline;}
-        .toolbar{background:#fff;border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,0.06);padding:14px;border:1px solid rgba(0,0,0,0.04);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;max-width:1100px;}
-        .searchbox{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-        .searchbox label{font-size:13px;color:#374151;font-weight:bold;}
-        .searchbox input{width:260px;max-width:70vw;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;font-size:13px;outline:none;}
-        .searchbox input:focus{border-color:#0077b6;box-shadow:0 0 0 4px rgba(0,119,182,0.12);}
-        .msg{max-width:1100px;margin-top:12px;border-radius:12px;padding:10px 12px;font-size:13px;border:1px solid;}
-        .msg.success{background:#ecfdf3;color:#166534;border-color:#bbf7d0;}
-        .tablecard{margin-top:14px;background:#fff;border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.04);overflow:hidden;max-width:1100px;}
-        .tablewrap{overflow-x:auto;}
-        table{width:100%;border-collapse:collapse;min-width:1100px;font-size:13px;}
-        th, td{text-align:left;padding:12px 10px;border-bottom:1px solid #e5e7eb;vertical-align:top;}
-        th{background:#f9fafb;color:#6b7280;font-size:12px;position:sticky;top:0;z-index:1;}
-        tr:hover td{background:#f8fafc;}
-        .actions{display:flex;gap:10px;flex-wrap:wrap;}
-        .pill{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;font-size:12px;font-weight:bold;}
-        .danger{color:#b91c1c;} .danger:hover{color:#7f1d1d;}
-    </style>
+<style>
+    .pagehead {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+    }
+
+    .page-title {
+        margin: 0 0 6px 0;
+        font-size: 22px;
+    }
+
+    .page-subtitle {
+        margin: 0;
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+    .btn {
+        border: none;
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-weight: bold;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 13px;
+    }
+
+    .btn-primary {
+        background: #0077b6;
+        color: #fff;
+    }
+
+    .btn-primary:hover {
+        background: #005f8a;
+    }
+
+    .btn-secondary {
+        background: #fff;
+        color: #111827;
+        border: 1px solid #d1d5db;
+    }
+
+    .btn-secondary:hover {
+        background: #f9fafb;
+    }
+
+    .btn-link {
+        background: transparent;
+        border: none;
+        padding: 0;
+        color: #0077b6;
+        font-weight: bold;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 13px;
+    }
+
+    .btn-link:hover {
+        text-decoration: underline;
+    }
+
+    .toolbar {
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+        padding: 14px;
+        border: 1px solid rgba(0,0,0,0.04);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        max-width: 1100px;
+    }
+
+    .searchbox {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .searchbox label {
+        font-size: 13px;
+        color: #374151;
+        font-weight: bold;
+    }
+
+    .searchbox input {
+        width: 260px;
+        max-width: 70vw;
+        padding: 10px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
+        font-size: 13px;
+        outline: none;
+    }
+
+    .searchbox input:focus {
+        border-color: #0077b6;
+        box-shadow: 0 0 0 4px rgba(0,119,182,0.12);
+    }
+
+    .msg {
+        max-width: 1100px;
+        margin-top: 12px;
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-size: 13px;
+        border: 1px solid;
+    }
+
+    .msg.success {
+        background: #ecfdf3;
+        color: #166534;
+        border-color: #bbf7d0;
+    }
+
+    .tablecard {
+        margin-top: 14px;
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+        border: 1px solid rgba(0,0,0,0.04);
+        overflow: hidden;
+        max-width: 1100px;
+    }
+
+    .tablewrap {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1100px;
+        font-size: 13px;
+    }
+
+    th, td {
+        text-align: left;
+        padding: 12px 10px;
+        border-bottom: 1px solid #e5e7eb;
+        vertical-align: top;
+    }
+
+    th {
+        background: #f9fafb;
+        color: #6b7280;
+        font-size: 12px;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    tr:hover td {
+        background: #f8fafc;
+    }
+
+    .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .pill {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .danger {
+        color: #b91c1c;
+    }
+
+    .danger:hover {
+        color: #7f1d1d;
+    }
+</style>
 </head>
 
 <body>
@@ -59,9 +221,9 @@
     String successParam = request.getParameter("success");
     if ("updated".equals(successParam)) {
 %>
-<div class="msg success">✅ Reservation updated successfully!</div>
+<div class="msg success"> Reservation updated successfully!</div>
 <% } else if ("deleted".equals(successParam)) { %>
-<div class="msg success">✅ Reservation deleted successfully!</div>
+<div class="msg success"> Reservation deleted successfully!</div>
 <% } %>
 
 <div class="toolbar">
@@ -108,10 +270,7 @@
                 <td><%= r.getAddress() %></td>
                 <td><%= r.getContactNo() %></td>
                 <td><%= r.getRoomType() %></td>
-
-                <!-- ⭐ ROOM NUMBER DISPLAY -->
                 <td><%= r.getRoomNumber() == null ? "-" : r.getRoomNumber() %></td>
-
                 <td><%= r.getGuestCount() %></td>
                 <td><%= r.getCheckIn() %></td>
                 <td><%= r.getCheckOut() %></td>

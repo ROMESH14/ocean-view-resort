@@ -168,8 +168,6 @@
 <body>
 
 <div class="container">
-
-    <!-- LEFT SIDE -->
     <div class="left">
         <img class="bgimg"
              src="<%= request.getContextPath() %>/assets/image.jpg"
@@ -180,8 +178,6 @@
             <p class="tagline">Your Escape. Our Hospitality.</p>
         </div>
     </div>
-
-    <!-- RIGHT SIDE -->
     <div class="right">
 
         <h1>Welcome</h1>
@@ -189,7 +185,7 @@
 
         <% if (error != null) { %>
         <div class="error-box">
-            ❌ Invalid username or password
+             Invalid username or password
         </div>
         <% } %>
 

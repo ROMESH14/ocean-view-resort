@@ -10,8 +10,6 @@ import java.io.IOException;
 
 @WebServlet("/login")
 public class LoginServlet extends HttpServlet {
-
-    // ✅ simple hard-coded login (for assignment)
     private static final String USERNAME = "admin";
     private static final String PASSWORD = "123";
 

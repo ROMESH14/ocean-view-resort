@@ -35,15 +35,13 @@ public class ReservationUpdateServlet extends HttpServlet {
         int guestCount = Integer.parseInt(req.getParameter("guestCount"));
         LocalDate checkIn = LocalDate.parse(req.getParameter("checkIn"));
         LocalDate checkOut = LocalDate.parse(req.getParameter("checkOut"));
-
-        // 🔽 Load existing reservation (needed to keep room_id, reservation_no, total_amount etc)
         Reservation existing = reservationDAO.getReservationById(id);
         if (existing == null) {
             resp.sendRedirect(req.getContextPath() + "/reservations");
             return;
         }
 
-        // ---------------- VALIDATION ----------------
+        //validation
         if (guestName == null || guestName.trim().isEmpty()) {
             req.setAttribute("error", "Guest Name is required.");
             req.setAttribute("reservation", existing);
@@ -71,9 +69,6 @@ public class ReservationUpdateServlet extends HttpServlet {
             req.getRequestDispatcher("/edit-reservation.jsp").forward(req, resp);
             return;
         }
-        // ------------------------------------------------
-
-        // ✅ roomId: get from form if exists, else keep old one
         int roomId = existing.getRoomId();
         String roomIdParam = req.getParameter("roomId");
         if (roomIdParam != null && !roomIdParam.trim().isEmpty()) {
@@ -83,30 +78,18 @@ public class ReservationUpdateServlet extends HttpServlet {
                 // keep existing roomId
             }
         }
-
-        // ✅ Build updated reservation (keep important fields)
         Reservation r = new Reservation();
         r.setId(id);
-
-        // keep reservation_no
         r.setReservationNo(existing.getReservationNo());
-
         r.setGuestName(guestName);
         r.setAddress(address);
         r.setContactNo(contactNo);
-
-        // keep/normalize room type (DAO will normalize)
         r.setRoomType(roomType);
-
         r.setRoomId(roomId);
         r.setGuestCount(guestCount);
         r.setCheckIn(checkIn);
         r.setCheckOut(checkOut);
-
-        // keep totalAmount (unless your edit page recalculates it)
         r.setTotalAmount(existing.getTotalAmount());
-
-        // ✅ SAFE UPDATE (prevents double booking)
         boolean ok = reservationDAO.updateReservationIfAvailable(r);
 
         if (!ok) {

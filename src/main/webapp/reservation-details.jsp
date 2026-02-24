@@ -123,7 +123,7 @@
 <% if (r == null) { %>
 
     <div class="notfound">
-        ❌ Reservation not found. Please go back to the reservations list.
+         Reservation not found. Please go back to the reservations list.
     </div>
 
     <div class="actions">

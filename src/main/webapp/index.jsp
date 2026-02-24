@@ -9,8 +9,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
-        /* Page-only styles (layout comes from header.jsp) */
-
         .page-title {
             margin: 0 0 6px 0;
             font-size: 22px;
@@ -128,7 +126,7 @@
 
 <% if (error != null) { %>
 <div class="error-box">
-    ❌ <%= error %>
+     <%= error %>
 </div>
 <% } %>
 

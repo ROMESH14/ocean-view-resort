@@ -151,7 +151,7 @@
 <% if (r == null) { %>
 
     <div class="notfound">
-        ❌ Reservation not found. Please go back to the reservations list.
+         Reservation not found. Please go back to the reservations list.
     </div>
 
     <div class="actions">
@@ -161,7 +161,7 @@
 <% } else { %>
 
     <% if (error != null) { %>
-        <div class="msg error">❌ <%= error %></div>
+        <div class="msg error"> <%= error %></div>
     <% } %>
 
     <div class="badge">Reservation # <%= r.getReservationNo() %></div>

@@ -11,18 +11,14 @@ import java.util.List;
 
 public class ReservationDAO {
 
-    // =========================================================
-    // SAFE INSERT (Prevents double booking)
-    // =========================================================
     public boolean addReservationIfAvailable(Reservation r) {
 
         String lockRoomSql = "SELECT id FROM rooms WHERE id = ? FOR UPDATE";
-
         String overlapSql =
                 "SELECT 1 FROM reservations " +
                         "WHERE room_id = ? " +
-                        "  AND check_in < ? " +   // new_check_out
-                        "  AND check_out > ? " +  // new_check_in
+                        "  AND check_in < ? " +
+                        "  AND check_out > ? " +
                         "LIMIT 1";
 
         String insertSql =
@@ -34,13 +30,10 @@ public class ReservationDAO {
             con.setAutoCommit(false);
 
             try {
-                // 1) Lock room row
                 try (PreparedStatement lockPs = con.prepareStatement(lockRoomSql)) {
                     lockPs.setInt(1, r.getRoomId());
                     lockPs.executeQuery();
                 }
-
-                // 2) Check overlap
                 boolean conflict;
                 try (PreparedStatement ovPs = con.prepareStatement(overlapSql)) {
                     ovPs.setInt(1, r.getRoomId());
@@ -55,8 +48,6 @@ public class ReservationDAO {
                     con.rollback();
                     return false;
                 }
-
-                // 3) Insert
                 try (PreparedStatement ps = con.prepareStatement(insertSql)) {
                     ps.setString(1, r.getReservationNo());
                     ps.setString(2, r.getGuestName());
@@ -87,14 +78,9 @@ public class ReservationDAO {
             return false;
         }
     }
-
-    // =========================================================
-    // SAFE UPDATE (Prevents double booking on edit)
-    // =========================================================
     public boolean updateReservationIfAvailable(Reservation r) {
 
         String lockRoomSql = "SELECT id FROM rooms WHERE id = ? FOR UPDATE";
-
         String overlapSql =
                 "SELECT 1 FROM reservations " +
                         "WHERE room_id = ? " +
@@ -111,13 +97,10 @@ public class ReservationDAO {
             con.setAutoCommit(false);
 
             try {
-                // 1) Lock room row
                 try (PreparedStatement lockPs = con.prepareStatement(lockRoomSql)) {
                     lockPs.setInt(1, r.getRoomId());
                     lockPs.executeQuery();
                 }
-
-                // 2) Overlap check
                 boolean conflict;
                 try (PreparedStatement ovPs = con.prepareStatement(overlapSql)) {
                     ovPs.setInt(1, r.getRoomId());
@@ -133,8 +116,6 @@ public class ReservationDAO {
                     con.rollback();
                     return false;
                 }
-
-                // 3) Update
                 try (PreparedStatement ps = con.prepareStatement(updateSql)) {
                     ps.setString(1, r.getGuestName());
                     ps.setString(2, r.getAddress());
@@ -165,10 +146,6 @@ public class ReservationDAO {
             return false;
         }
     }
-
-    // =========================================================
-    // NORMAL INSERT (Not safe) - keep only if needed
-    // =========================================================
     public boolean addReservation(Reservation r) {
         String sql = "INSERT INTO reservations " +
                 "(reservation_no, guest_name, address, contact_no, room_type, room_id, check_in, check_out, guest_count, total_amount) " +
@@ -195,10 +172,7 @@ public class ReservationDAO {
             return false;
         }
     }
-
-    // =========================================================
-    // GET RATE FROM DATABASE (so price can change in DB)
-    // =========================================================
+//get rate
     public BigDecimal getRatePerNight(String roomType) {
         String sql = "SELECT rate_per_night FROM room_rates WHERE room_type = ?";
 
@@ -217,10 +191,7 @@ public class ReservationDAO {
 
         return BigDecimal.ZERO;
     }
-
-    // =========================================================
-    // GET ALL RESERVATIONS (with room number)
-    // =========================================================
+//get all res
     public List<Reservation> getAllReservations() {
         List<Reservation> list = new ArrayList<>();
 
@@ -247,10 +218,6 @@ public class ReservationDAO {
 
         return list;
     }
-
-    // =========================================================
-    // GET RESERVATION BY ID (with room number)
-    // =========================================================
     public Reservation getReservationById(int id) {
 
         String sql =
@@ -276,10 +243,7 @@ public class ReservationDAO {
 
         return null;
     }
-
-    // =========================================================
-    // UPDATE RESERVATION (Not safe)
-    // =========================================================
+//update res
     public boolean updateReservation(Reservation r) {
 
         String sql = "UPDATE reservations SET " +
@@ -308,9 +272,7 @@ public class ReservationDAO {
         }
     }
 
-    // =========================================================
-    // DELETE
-    // =========================================================
+    // delete
     public boolean deleteReservation(int id) {
         String sql = "DELETE FROM reservations WHERE id = ?";
         try (Connection con = DBConnection.getConnection();
@@ -322,10 +284,7 @@ public class ReservationDAO {
             return false;
         }
     }
-
-    // =========================================================
-    // SEARCH BY GUEST NAME (with room number)
-    // =========================================================
+//search
     public List<Reservation> searchByGuestName(String keyword) {
 
         List<Reservation> list = new ArrayList<>();
@@ -354,10 +313,7 @@ public class ReservationDAO {
 
         return list;
     }
-
-    // =========================================================
-    // DASHBOARD
-    // =========================================================
+//dashboard
     public int getTotalReservations() {
         String sql = "SELECT COUNT(*) FROM reservations";
         try (Connection con = DBConnection.getConnection();
@@ -422,10 +378,7 @@ public class ReservationDAO {
         }
         return BigDecimal.ZERO;
     }
-
-    // =========================================================
-    // Helpers
-    // =========================================================
+//help
     private Reservation mapReservationWithRoomNumber(ResultSet rs) throws SQLException {
         Reservation r = new Reservation();
 
@@ -451,8 +404,6 @@ public class ReservationDAO {
     private BigDecimal safeAmount(BigDecimal amount) {
         return amount != null ? amount : BigDecimal.ZERO;
     }
-
-    // Normalize to DB values: STANDARD / DELUXE / SUITE
     private String normalizeRoomType(String roomType) {
         if (roomType == null) return "STANDARD";
         String rt = roomType.trim();
@@ -460,7 +411,6 @@ public class ReservationDAO {
         if (rt.equalsIgnoreCase("Standard")) return "STANDARD";
         if (rt.equalsIgnoreCase("Deluxe")) return "DELUXE";
         if (rt.equalsIgnoreCase("Suite")) return "SUITE";
-
         if (rt.equalsIgnoreCase("STANDARD")) return "STANDARD";
         if (rt.equalsIgnoreCase("DELUXE")) return "DELUXE";
         if (rt.equalsIgnoreCase("SUITE")) return "SUITE";

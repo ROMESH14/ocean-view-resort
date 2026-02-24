@@ -5,7 +5,7 @@ import java.time.LocalDate;
 
 public class Reservation {
 
-    private int id;  // Auto increment (from DB)
+    private int id;
     private String reservationNo;
     private String guestName;
     private String address;

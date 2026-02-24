@@ -36,8 +36,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
-        /* Page-only styles (layout comes from header.jsp) */
-
         .invoice-wrap{
             max-width: 820px;
         }
@@ -180,8 +178,6 @@
             border: 1px solid #d1d5db;
         }
         .btn-secondary:hover{ background:#f9fafb; }
-
-        /* NEW: friendly error box if opened directly */
         .error-box{
             max-width: 820px;
             background: #fff1f2;
@@ -192,8 +188,6 @@
             font-size: 13px;
             margin-bottom: 12px;
         }
-
-        /* PRINT MODE: hide sidebar/topbar and print only invoice */
         @media print {
             .topbar, .sidebar, .actions { display: none !important; }
             .layout { display: block !important; }
@@ -212,11 +206,11 @@
 
 <%@ include file="header.jsp" %>
 
-<%-- ✅ NEW: stop crash if servlet data is missing --%>
+<%--  NEW: stop crash if servlet data is missing --%>
 <% if (r == null) { %>
     <div class="invoice-wrap">
         <div class="error-box">
-            ❌ Bill data not found. Please open the bill from <b>All Reservations</b> by clicking <b>Bill</b>.
+             Bill data not found. Please open the bill from <b>All Reservations</b> by clicking <b>Bill</b>.
         </div>
         <a class="btn btn-secondary" href="reservations">Back to Reservations</a>
     </div>

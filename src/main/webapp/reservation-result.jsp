@@ -174,8 +174,6 @@
             border: 1px solid #d1d5db;
         }
         .btn-secondary:hover{ background:#f9fafb; }
-
-        /* Print: show only confirmation invoice area */
         @media print {
             .topbar, .sidebar, .actions, .page-title, .page-subtitle, .msg { display:none !important; }
             .layout { display:block !important; }
@@ -203,7 +201,7 @@
     <% if (success != null && success) { %>
 
         <div class="msg success">
-            ✅ <b>Reservation Added Successfully!</b>
+             <b>Reservation Added Successfully!</b>
         </div>
 
         <div class="card">
@@ -316,7 +314,7 @@
     <% } else { %>
 
         <div class="msg error">
-            ❌ <b>Insert Failed.</b> Please try again.
+             <b>Insert Failed.</b> Please try again.
         </div>
 
         <div class="actions">

@@ -195,10 +195,8 @@ public class ReservationServlet extends HttpServlet {
             return;
         }
 
-        // ---------- Forward result ----------
         req.setAttribute("success", true);
         req.setAttribute("reservation", r);
-
         req.setAttribute("nights", nights);
         req.setAttribute("roomsNeeded", roomsNeeded);
         req.setAttribute("ratePerRoom", baseRatePerRoom);

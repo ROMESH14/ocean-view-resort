@@ -61,8 +61,6 @@
 </div>
 
 <div class="layout">
-
-    <!-- Sidebar -->
     <div class="sidebar">
         <a href="dashboard">Dashboard</a>
         <a href="index.jsp">Make Reservation</a>

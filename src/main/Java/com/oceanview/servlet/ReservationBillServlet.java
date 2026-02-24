@@ -57,14 +57,8 @@ public class ReservationBillServlet extends HttpServlet {
         }
 
         int guestCount = r.getGuestCount();
-
-        // ✅ Always use DB room type (STANDARD/DELUXE/SUITE)
         String roomType = r.getRoomType();
-
-        // ✅ Read base rate from room_rates table (so DB price changes work)
         BigDecimal baseRatePerRoom = reservationDAO.getRatePerNight(roomType);
-
-        // If rate is missing in DB
         if (baseRatePerRoom == null || baseRatePerRoom.compareTo(BigDecimal.ZERO) <= 0) {
             req.setAttribute("error", "Room rate not found for room type: " + roomType);
             req.getRequestDispatcher("/bill.jsp").forward(req, resp);
@@ -74,8 +68,6 @@ public class ReservationBillServlet extends HttpServlet {
         int maxGuestsPerRoom;
         int includedGuestsPerRoom;
         BigDecimal extraGuestFeePerNight;
-
-        // ✅ Use DB style values
         switch (roomType) {
             case "DELUXE":
                 includedGuestsPerRoom = 2;
@@ -89,7 +81,7 @@ public class ReservationBillServlet extends HttpServlet {
                 extraGuestFeePerNight = BigDecimal.ZERO;
                 break;
 
-            default: // STANDARD
+            default:
                 includedGuestsPerRoom = 2;
                 maxGuestsPerRoom = 3;
                 extraGuestFeePerNight = new BigDecimal("2000");
@@ -119,8 +111,6 @@ public class ReservationBillServlet extends HttpServlet {
         req.setAttribute("roomCost", roomCost);
         req.setAttribute("extraCost", extraCost);
         req.setAttribute("total", total);
-
-        // ✅ if your bill.jsp wants to show it
         req.setAttribute("roomNumber", r.getRoomNumber());
 
         req.getRequestDispatcher("/bill.jsp").forward(req, resp);
