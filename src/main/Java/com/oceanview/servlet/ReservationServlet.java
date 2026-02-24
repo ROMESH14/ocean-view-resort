@@ -39,7 +39,6 @@ public class ReservationServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
-        // Auto-generate Reservation No
         String reservationNo = "RES-" +
                 LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) +
                 "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
@@ -48,10 +47,7 @@ public class ReservationServlet extends HttpServlet {
         String address = req.getParameter("address");
         String contactNo = req.getParameter("contactNo");
 
-        // UI values: Standard / Deluxe / Suite
         String roomTypeUi = req.getParameter("roomType");
-
-        // --------- VALIDATION (basic) ----------
         if (guestName == null || guestName.trim().isEmpty()) {
             req.setAttribute("error", "Guest Name is required.");
             req.getRequestDispatcher("/index.jsp").forward(req, resp);
@@ -109,8 +105,6 @@ public class ReservationServlet extends HttpServlet {
             return;
         }
 
-        // ---------- Map UI room type -> DB room type ----------
-        // DB values: STANDARD / DELUXE / SUITE
         String roomTypeDb;
         switch (roomTypeUi) {
             case "Deluxe":
@@ -124,7 +118,6 @@ public class ReservationServlet extends HttpServlet {
                 break;
         }
 
-        // ---------- Guest rules + extra fee rules (NOT base price) ----------
         int maxGuestsPerRoom;
         int includedGuestsPerRoom;
         BigDecimal extraGuestFeePerNight;
@@ -142,16 +135,14 @@ public class ReservationServlet extends HttpServlet {
                 extraGuestFeePerNight = BigDecimal.ZERO;
                 break;
 
-            default: // STANDARD
+            default:
                 includedGuestsPerRoom = 2;
                 maxGuestsPerRoom = 3;
                 extraGuestFeePerNight = new BigDecimal("2000");
                 break;
         }
 
-        // Your system supports 1 room per reservation right now
         int roomsNeeded = 1;
-
         if (guestCount > maxGuestsPerRoom) {
             req.setAttribute("error", "Too many guests for one " + roomTypeUi + " room. Book rooms separately.");
             req.getRequestDispatcher("/index.jsp").forward(req, resp);
@@ -160,7 +151,6 @@ public class ReservationServlet extends HttpServlet {
 
         int extraGuests = Math.max(0, guestCount - includedGuestsPerRoom);
 
-        // ✅ IMPORTANT FIX: base rate comes from DB (room_rates table)
         BigDecimal baseRatePerRoom = reservationDAO.getRatePerNight(roomTypeDb);
 
         if (baseRatePerRoom == null || baseRatePerRoom.compareTo(BigDecimal.ZERO) <= 0) {
@@ -179,7 +169,6 @@ public class ReservationServlet extends HttpServlet {
 
         BigDecimal total = roomCost.add(extraCost);
 
-        // ---------- Find an available room_id ----------
         Integer roomId = roomDAO.getOneAvailableRoomId(roomTypeDb, checkIn, checkOut);
         if (roomId == null) {
             req.setAttribute("error", "No rooms available for selected dates. Please choose different dates.");
@@ -187,7 +176,6 @@ public class ReservationServlet extends HttpServlet {
             return;
         }
 
-        // ---------- Build reservation ----------
         Reservation r = new Reservation();
         r.setReservationNo(reservationNo);
         r.setGuestName(guestName);
@@ -198,9 +186,8 @@ public class ReservationServlet extends HttpServlet {
         r.setCheckIn(checkIn);
         r.setCheckOut(checkOut);
         r.setGuestCount(guestCount);
-        r.setTotalAmount(total); // ✅ now DB total matches bill total
+        r.setTotalAmount(total);
 
-        // ✅ SAFE INSERT (prevents double booking)
         boolean success = reservationDAO.addReservationIfAvailable(r);
         if (!success) {
             req.setAttribute("error", "Room already booked for selected dates. Please try again.");
