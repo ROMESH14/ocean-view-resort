@@ -16,25 +16,36 @@ __Features__
 
 
 __Key Technologies Used__
+
+
 **Backend**
 -Java (JDK 17+ recommended)
 -Java Servlets
 -JSP (JavaServer Pages)
 -JDBC
+
+
 **Database**
 -MySQL
 -SQL (DDL & DML)
+
+
 **Frontend**
 -HTML5
 -CSS3
 -JSP templating
+
+
  **Server & Tools**
 -Apache Tomcat 9
 -IntelliJ IDEA
 -Smart Tomcat Plugin
 -MySQL Connector/J
+
+
 **Version Control**
 -Git
 -GitHub (public repository)
+
 
 
