@@ -46,8 +46,10 @@ public class ReservationServlet extends HttpServlet {
         String guestName = req.getParameter("guestName");
         String address = req.getParameter("address");
         String contactNo = req.getParameter("contactNo");
+        String roomTypeRaw = req.getParameter("roomType");
 
-        String roomTypeUi = req.getParameter("roomType");
+        System.out.println("roomType from form = " + roomTypeRaw);
+
         if (guestName == null || guestName.trim().isEmpty()) {
             req.setAttribute("error", "Guest Name is required.");
             req.getRequestDispatcher("/index.jsp").forward(req, resp);
@@ -60,7 +62,7 @@ public class ReservationServlet extends HttpServlet {
             return;
         }
 
-        if (roomTypeUi == null || roomTypeUi.trim().isEmpty()) {
+        if (roomTypeRaw == null || roomTypeRaw.trim().isEmpty()) {
             req.setAttribute("error", "Room Type is required.");
             req.getRequestDispatcher("/index.jsp").forward(req, resp);
             return;
@@ -105,17 +107,13 @@ public class ReservationServlet extends HttpServlet {
             return;
         }
 
-        String roomTypeDb;
-        switch (roomTypeUi) {
-            case "Deluxe":
-                roomTypeDb = "DELUXE";
-                break;
-            case "Suite":
-                roomTypeDb = "SUITE";
-                break;
-            default:
-                roomTypeDb = "STANDARD";
-                break;
+        String roomTypeDb = normalizeRoomType(roomTypeRaw);
+        System.out.println("normalized roomType = " + roomTypeDb);
+
+        if (roomTypeDb == null) {
+            req.setAttribute("error", "Invalid room type selected.");
+            req.getRequestDispatcher("/index.jsp").forward(req, resp);
+            return;
         }
 
         int maxGuestsPerRoom;
@@ -135,31 +133,37 @@ public class ReservationServlet extends HttpServlet {
                 extraGuestFeePerNight = BigDecimal.ZERO;
                 break;
 
-            default:
+            case "STANDARD":
                 includedGuestsPerRoom = 2;
                 maxGuestsPerRoom = 3;
                 extraGuestFeePerNight = new BigDecimal("2000");
                 break;
+
+            default:
+                req.setAttribute("error", "Unsupported room type selected.");
+                req.getRequestDispatcher("/index.jsp").forward(req, resp);
+                return;
         }
 
-        int roomsNeeded = 1;
         if (guestCount > maxGuestsPerRoom) {
-            req.setAttribute("error", "Too many guests for one " + roomTypeUi + " room. Book rooms separately.");
+            req.setAttribute("error", "Too many guests for one room. Book rooms separately.");
             req.getRequestDispatcher("/index.jsp").forward(req, resp);
             return;
         }
 
+        int roomsNeeded = 1;
         int extraGuests = Math.max(0, guestCount - includedGuestsPerRoom);
 
-        BigDecimal baseRatePerRoom = reservationDAO.getRatePerNight(roomTypeDb);
+        BigDecimal baseRatePerNight = reservationDAO.getRatePerNight(roomTypeDb);
+        System.out.println("baseRatePerNight = " + baseRatePerNight);
 
-        if (baseRatePerRoom == null || baseRatePerRoom.compareTo(BigDecimal.ZERO) <= 0) {
+        if (baseRatePerNight == null || baseRatePerNight.compareTo(BigDecimal.ZERO) <= 0) {
             req.setAttribute("error", "Room rate is not configured in database for " + roomTypeDb + ".");
             req.getRequestDispatcher("/index.jsp").forward(req, resp);
             return;
         }
 
-        BigDecimal roomCost = baseRatePerRoom
+        BigDecimal roomCost = baseRatePerNight
                 .multiply(BigDecimal.valueOf(roomsNeeded))
                 .multiply(BigDecimal.valueOf(nights));
 
@@ -199,7 +203,7 @@ public class ReservationServlet extends HttpServlet {
         req.setAttribute("reservation", r);
         req.setAttribute("nights", nights);
         req.setAttribute("roomsNeeded", roomsNeeded);
-        req.setAttribute("ratePerRoom", baseRatePerRoom);
+        req.setAttribute("ratePerRoom", baseRatePerNight);
         req.setAttribute("extraGuests", extraGuests);
         req.setAttribute("extraFee", extraGuestFeePerNight);
         req.setAttribute("roomCost", roomCost);
@@ -207,5 +211,29 @@ public class ReservationServlet extends HttpServlet {
         req.setAttribute("total", total);
 
         req.getRequestDispatcher("/reservation-result.jsp").forward(req, resp);
+    }
+
+    private String normalizeRoomType(String roomType) {
+        if (roomType == null) return null;
+
+        String rt = roomType.trim().toUpperCase();
+
+        switch (rt) {
+            case "STANDARD":
+            case "STANDARD ROOM":
+                return "STANDARD";
+
+            case "DELUXE":
+            case "DELUXE ROOM":
+            case "LUXE":
+                return "DELUXE";
+
+            case "SUITE":
+            case "SUITE ROOM":
+                return "SUITE";
+
+            default:
+                return null;
+        }
     }
 }

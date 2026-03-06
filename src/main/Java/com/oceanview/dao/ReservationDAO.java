@@ -17,8 +17,8 @@ public class ReservationDAO {
         String overlapSql =
                 "SELECT 1 FROM reservations " +
                         "WHERE room_id = ? " +
-                        "  AND check_in < ? " +
-                        "  AND check_out > ? " +
+                        "AND check_in < ? " +
+                        "AND check_out > ? " +
                         "LIMIT 1";
 
         String insertSql =
@@ -34,11 +34,13 @@ public class ReservationDAO {
                     lockPs.setInt(1, r.getRoomId());
                     lockPs.executeQuery();
                 }
+
                 boolean conflict;
                 try (PreparedStatement ovPs = con.prepareStatement(overlapSql)) {
                     ovPs.setInt(1, r.getRoomId());
                     ovPs.setDate(2, Date.valueOf(r.getCheckOut()));
                     ovPs.setDate(3, Date.valueOf(r.getCheckIn()));
+
                     try (ResultSet rs = ovPs.executeQuery()) {
                         conflict = rs.next();
                     }
@@ -48,6 +50,7 @@ public class ReservationDAO {
                     con.rollback();
                     return false;
                 }
+
                 try (PreparedStatement ps = con.prepareStatement(insertSql)) {
                     ps.setString(1, r.getReservationNo());
                     ps.setString(2, r.getGuestName());
@@ -78,20 +81,22 @@ public class ReservationDAO {
             return false;
         }
     }
+
     public boolean updateReservationIfAvailable(Reservation r) {
 
         String lockRoomSql = "SELECT id FROM rooms WHERE id = ? FOR UPDATE";
         String overlapSql =
                 "SELECT 1 FROM reservations " +
                         "WHERE room_id = ? " +
-                        "  AND id <> ? " +
-                        "  AND check_in < ? " +
-                        "  AND check_out > ? " +
+                        "AND id <> ? " +
+                        "AND check_in < ? " +
+                        "AND check_out > ? " +
                         "LIMIT 1";
 
-        String updateSql = "UPDATE reservations SET " +
-                "guest_name=?, address=?, contact_no=?, room_type=?, room_id=?, check_in=?, check_out=?, guest_count=?, total_amount=? " +
-                "WHERE id=?";
+        String updateSql =
+                "UPDATE reservations SET " +
+                        "guest_name=?, address=?, contact_no=?, room_type=?, room_id=?, check_in=?, check_out=?, guest_count=?, total_amount=? " +
+                        "WHERE id=?";
 
         try (Connection con = DBConnection.getConnection()) {
             con.setAutoCommit(false);
@@ -101,12 +106,14 @@ public class ReservationDAO {
                     lockPs.setInt(1, r.getRoomId());
                     lockPs.executeQuery();
                 }
+
                 boolean conflict;
                 try (PreparedStatement ovPs = con.prepareStatement(overlapSql)) {
                     ovPs.setInt(1, r.getRoomId());
                     ovPs.setInt(2, r.getId());
                     ovPs.setDate(3, Date.valueOf(r.getCheckOut()));
                     ovPs.setDate(4, Date.valueOf(r.getCheckIn()));
+
                     try (ResultSet rs = ovPs.executeQuery()) {
                         conflict = rs.next();
                     }
@@ -116,6 +123,7 @@ public class ReservationDAO {
                     con.rollback();
                     return false;
                 }
+
                 try (PreparedStatement ps = con.prepareStatement(updateSql)) {
                     ps.setString(1, r.getGuestName());
                     ps.setString(2, r.getAddress());
@@ -146,6 +154,7 @@ public class ReservationDAO {
             return false;
         }
     }
+
     public boolean addReservation(Reservation r) {
         String sql = "INSERT INTO reservations " +
                 "(reservation_no, guest_name, address, contact_no, room_type, room_id, check_in, check_out, guest_count, total_amount) " +
@@ -172,17 +181,28 @@ public class ReservationDAO {
             return false;
         }
     }
-//get rate
+
+    // get rate
     public BigDecimal getRatePerNight(String roomType) {
-        String sql = "SELECT rate_per_night FROM room_rates WHERE room_type = ?";
+        String normalizedRoomType = normalizeRoomType(roomType);
+        String sql = "SELECT rate_per_night FROM room_rates WHERE UPPER(TRIM(room_type)) = ?";
+
+        System.out.println("Original roomType: " + roomType);
+        System.out.println("Normalized roomType: " + normalizedRoomType);
 
         try (Connection con = DBConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setString(1, normalizeRoomType(roomType));
+            ps.setString(1, normalizedRoomType);
 
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getBigDecimal("rate_per_night");
+                if (rs.next()) {
+                    BigDecimal rate = rs.getBigDecimal("rate_per_night");
+                    System.out.println("Rate found: " + rate);
+                    return rate;
+                } else {
+                    System.out.println("No rate found for room type: " + normalizedRoomType);
+                }
             }
 
         } catch (Exception e) {
@@ -191,7 +211,8 @@ public class ReservationDAO {
 
         return BigDecimal.ZERO;
     }
-//get all res
+
+    // get all reservations
     public List<Reservation> getAllReservations() {
         List<Reservation> list = new ArrayList<>();
 
@@ -218,6 +239,7 @@ public class ReservationDAO {
 
         return list;
     }
+
     public Reservation getReservationById(int id) {
 
         String sql =
@@ -243,12 +265,14 @@ public class ReservationDAO {
 
         return null;
     }
-//update res
+
+    // update reservation
     public boolean updateReservation(Reservation r) {
 
-        String sql = "UPDATE reservations SET " +
-                "guest_name=?, address=?, contact_no=?, room_type=?, room_id=?, check_in=?, check_out=?, guest_count=?, total_amount=? " +
-                "WHERE id=?";
+        String sql =
+                "UPDATE reservations SET " +
+                        "guest_name=?, address=?, contact_no=?, room_type=?, room_id=?, check_in=?, check_out=?, guest_count=?, total_amount=? " +
+                        "WHERE id=?";
 
         try (Connection con = DBConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -284,9 +308,9 @@ public class ReservationDAO {
             return false;
         }
     }
-//search
-    public List<Reservation> searchByGuestName(String keyword) {
 
+    // search
+    public List<Reservation> searchByGuestName(String keyword) {
         List<Reservation> list = new ArrayList<>();
 
         String sql =
@@ -313,7 +337,8 @@ public class ReservationDAO {
 
         return list;
     }
-//dashboard
+
+    // dashboard
     public int getTotalReservations() {
         String sql = "SELECT COUNT(*) FROM reservations";
         try (Connection con = DBConnection.getConnection();
@@ -378,7 +403,7 @@ public class ReservationDAO {
         }
         return BigDecimal.ZERO;
     }
-//help
+
     private Reservation mapReservationWithRoomNumber(ResultSet rs) throws SQLException {
         Reservation r = new Reservation();
 
@@ -404,17 +429,28 @@ public class ReservationDAO {
     private BigDecimal safeAmount(BigDecimal amount) {
         return amount != null ? amount : BigDecimal.ZERO;
     }
+
     private String normalizeRoomType(String roomType) {
         if (roomType == null) return "STANDARD";
-        String rt = roomType.trim();
 
-        if (rt.equalsIgnoreCase("Standard")) return "STANDARD";
-        if (rt.equalsIgnoreCase("Deluxe")) return "DELUXE";
-        if (rt.equalsIgnoreCase("Suite")) return "SUITE";
-        if (rt.equalsIgnoreCase("STANDARD")) return "STANDARD";
-        if (rt.equalsIgnoreCase("DELUXE")) return "DELUXE";
-        if (rt.equalsIgnoreCase("SUITE")) return "SUITE";
+        String rt = roomType.trim().toUpperCase();
 
-        return "STANDARD";
+        switch (rt) {
+            case "STANDARD":
+            case "STANDARD ROOM":
+                return "STANDARD";
+
+            case "DELUXE":
+            case "DELUXE ROOM":
+            case "LUXE":
+                return "DELUXE";
+
+            case "SUITE":
+            case "SUITE ROOM":
+                return "SUITE";
+
+            default:
+                return rt;
+        }
     }
 }
